@@ -39,7 +39,25 @@ function generate_sets(config_data::Dict{String, Any})
 end
 
 # --- Internal Recursion Helpers ---
+"""
+    find_vector_paths(node, current_path=String[])
 
+Recursively scans a nested configuration structure (Dictionaries and Vectors) to find parameters
+marked for sensitivity analysis.
+
+It looks for specific "leaf" nodes structured as `Dict("sensitivity" => [val1, val2, ...])`.
+When found, it stops recursing down that branch and records the path.
+
+# Arguments
+- `node`: The current level of the config structure (initially the root `Dict`).
+- `current_path`: An accumulator vector of Strings representing the keys/indices traversed so far.
+
+# Returns
+- `Vector{Tuple}`: A list of found sensitivity parameters. Each element is a tuple
+`(path, values_vector)`, where:
+    - `path`: A `Vector{String}` of keys/indices leading to the parameter.
+    - `values_vector`: The list of values defined in the "sensitivity" block.
+"""
 function find_vector_paths(node, current_path=String[])
     paths = []
     if node isa Dict
@@ -62,6 +80,28 @@ function find_vector_paths(node, current_path=String[])
     return paths
 end
 
+
+"""
+    set_nested_value!(config_dict, path, value)
+
+Navigates a nested configuration structure using a path vector and modifies the target value in-place.
+
+This function is robust to mixed structures of Dictionaries and Vectors.
+It automatically detects if a node is a Vector and parses the path key
+(which is a String) back into an Integer index.
+
+# Arguments
+- `config_dict`: The root configuration dictionary (will be modified).
+- `path`: A `Vector{String}` representing the sequence of keys/indices to navigate.
+- `value`: The new value to set at the target location.
+
+# Example
+If `path` is `["Stock_S", "2", "volatility"]`:
+1. Looks up `config_dict["Stock_S"]`.
+2. Sees the result is a Vector, so parses "2" -> index `2`.
+3. Looks up index 2.
+4. Sets the key `"volatility"` to `value`.
+"""
 function set_nested_value!(config_dict, path, value)
     d = config_dict
     # Navigate to the parent container
