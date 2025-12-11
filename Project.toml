@@ -1,9 +1,14 @@
 name = "ParameterSets"
 uuid = "2467ea11-b4b4-4663-8a92-c239b5e084a5"
-authors = ["Sliem el Ela <sliemelela@gmail.com>"]
 version = "0.1.0"
+authors = ["Sliem el Ela <sliemelela@gmail.com>"]
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 YAML = "ddb6d928-2868-570f-bddf-ab3f9cf99eb6"
+
+[compat]
+DataFrames = "1.8.1"
+JSON = "1.3.0"
+YAML = "0.4.16"
