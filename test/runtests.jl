@@ -70,8 +70,6 @@ end
 
 end
 
-using Test
-using ParameterSets
 
 @testset "Integration: Loading from YAML" begin
 
@@ -121,4 +119,90 @@ using ParameterSets
         rm(test_file_path, force=true)
     end
 
+end
+
+@testset "Reporting & Sensitivity Tables" begin
+
+    # 1. Setup: Define the mock config
+    yaml_content = """
+    a: 2
+    b:
+      sensitivity: [3, 4]
+    c:
+      sensitivity: [10, 20, 30]
+    """
+
+    # Use temporary paths to avoid clutter
+    config_path = joinpath(@__DIR__, "test_reporting.yaml")
+    output_dir = joinpath(@__DIR__, "test_reports_output")
+
+    write(config_path, yaml_content)
+
+    try
+        # 2. Load & Simulate
+        sets = load_sets(config_path)
+        results = Dict{Int, Dict{String, Any}}()
+
+        for p in sets
+            cfg = p.config
+            val_a, val_b, val_c = cfg["a"], cfg["b"], cfg["c"]
+
+            # Simple math for verification
+            results[p.id] = Dict(
+                "Sum" => val_a + val_b + val_c,       # Baseline: 2+3+10 = 15
+                "Prod" => val_a * val_b * val_c       # Baseline: 2*3*10 = 60
+            )
+        end
+
+        # 3. Generate Reports
+        tables = save_sensitivity_reports(sets, results;
+            output_dir=output_dir,
+            formats=[:csv, :markdown, :latex]
+        )
+
+        # 4. Assertions on Data Structure
+
+        # --- Check Table 'b' ---
+        @test haskey(tables, "b")
+        df_b = tables["b"]
+
+        # Structure Checks
+        @test size(df_b, 1) == 2  # 1 Baseline + 1 Variation
+        @test "Variation in b" in names(df_b)
+
+        # Content Checks (Row 1: Baseline)
+        @test df_b[1, "Variation in b"] == "3 (Baseline)"
+        @test df_b[1, "Sum"] == 15
+
+        # Content Checks (Row 2: Variation b=4)
+        # Expected: a=2, b=4, c=10 -> Sum=16, Prod=80
+        @test df_b[2, "Variation in b"] == "4"
+        @test df_b[2, "Sum"] == 16
+        @test df_b[2, "Prod"] == 80
+
+        # --- Check Table 'c' ---
+        @test haskey(tables, "c")
+        df_c = tables["c"]
+
+        # Structure Checks
+        @test size(df_c, 1) == 3 # 1 Baseline + 2 Variations
+
+        # Find the specific row where c=20
+        # Expected: a=2, b=3, c=20 -> Sum=25, Prod=120
+        row_c20 = only(filter(row -> row["Variation in c"] == "20", eachrow(df_c)))
+        @test row_c20["Sum"] == 25
+        @test row_c20["Prod"] == 120
+
+        # 5. Assertions on Files
+        # Verify that files were actually created
+        @test isfile(joinpath(output_dir, "sensitivity_b.csv"))
+        @test isfile(joinpath(output_dir, "sensitivity_b.md"))
+        @test isfile(joinpath(output_dir, "sensitivity_b.tex"))
+        @test isfile(joinpath(output_dir, "sensitivity_c.csv"))
+
+    finally
+        # 6. Cleanup
+        rm(config_path, force=true)
+        rm(output_dir, recursive=true, force=true)
+    end
 end

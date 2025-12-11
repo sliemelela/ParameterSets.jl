@@ -2,12 +2,15 @@ module ParameterSets
 
 using YAML
 using JSON
+using CSV
 using DataFrames
+using PrettyTables
 
 include("structs.jl")
 include("generator.jl")
+include("reporting.jl")
 
-export load_sets, sets_to_dataframe
+export load_sets, save_sensitivity_reports
 
 """
     load_sets(path::String)
@@ -35,21 +38,6 @@ function load_sets(path::String)
     end
 
     return generate_sets(raw_config)
-end
-
-"""
-    sets_to_dataframe(sets::Vector{ParameterSet})
-
-Returns a DataFrame summarizing the generated sets (ID, Label, Value).
-Useful for inspecting your experiment design before running it.
-"""
-function sets_to_dataframe(sets::Vector{ParameterSet})
-    return DataFrame(
-        ID = [s.id for s in sets],
-        Label = [s.label for s in sets],
-        Value = [s.value for s in sets],
-        Type = [s.is_baseline ? "Baseline" : "Variation" for s in sets]
-    )
 end
 
 end

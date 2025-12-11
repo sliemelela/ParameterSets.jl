@@ -72,7 +72,7 @@ function find_vector_paths(node, current_path=String[])
             end
         end
     elseif node isa Vector
-        # Recurse into lists of objects (e.g., your "Processes" list)
+        # Recurse into lists of objects
         for (i, v) in enumerate(node)
              push!(paths, find_vector_paths(v, [current_path; string(i)])...)
         end
