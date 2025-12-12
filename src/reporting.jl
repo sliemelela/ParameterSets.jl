@@ -80,36 +80,38 @@ function generate_sensitivity_tables(sets::Vector{ParameterSet}, results::Dict{I
     baseline_set = only(filter(s -> s.is_baseline, sets))
     baseline_metrics = results[baseline_set.id]
 
-    # Identify labels
-    unique_labels = unique([s.label for s in sets if !s.is_baseline])
+    # Identify labels: If no variations exist, we target the Baseline itself.
+    variation_labels = unique([s.label for s in sets if !s.is_baseline])
+    target_labels = isempty(variation_labels) ? ["Baseline"] : variation_labels
 
     tables = Dict{String, DataFrame}()
 
-    for label in unique_labels
-        group_sets = filter(s -> s.label == label, sets)
-        sort!(group_sets, by = x -> x.value)
-
-        # Get Baseline Value
-        baseline_val = get_value_from_config(baseline_set.config, label)
-
-        # --- Create Dynamic Column Name ---
-        col_name = "Variation in $label"
+    for label in target_labels
+        # Configure Row Headers and Sets
+        if label == "Baseline"
+            col_name = "Description"
+            baseline_display = "Baseline Run"
+            group_sets = ParameterSet[] # No variations to add
+        else
+            baseline_val = get_value_from_config(baseline_set.config, label)
+            col_name = "Variation in $label"
+            baseline_display = "$baseline_val (Baseline)"
+            group_sets = filter(s -> s.label == label, sets)
+            sort!(group_sets, by = x -> x.value)
+        end
 
         rows = []
 
-        # Add Baseline Row
-        # FIX: Explicitly type as Dict{String, Any} so it accepts numbers later
-        base_row_data = Dict{String, Any}(col_name => "$baseline_val (Baseline)")
+        # 1. Add Baseline Row (Always included)
+        base_row_data = Dict{String, Any}(col_name => baseline_display)
         merge!(base_row_data, baseline_metrics)
         push!(rows, base_row_data)
 
-        # Add Variation Rows
+        # 2. Add Variation Rows
         for s in group_sets
             if !haskey(results, s.id)
                 continue
             end
-
-            # FIX: Explicitly type as Dict{String, Any}
             row_data = Dict{String, Any}(col_name => string(s.value))
             merge!(row_data, results[s.id])
             push!(rows, row_data)
@@ -121,8 +123,6 @@ function generate_sensitivity_tables(sets::Vector{ParameterSet}, results::Dict{I
         # Reorder columns
         metric_keys = sort(collect(keys(baseline_metrics)))
         desired_order = vcat([col_name], metric_keys)
-
-        # Ensure only existing columns are selected
         final_cols = intersect(desired_order, names(df))
         select!(df, final_cols)
 
