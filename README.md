@@ -1,6 +1,6 @@
 # ParameterSets.jl
 
-[![CI](https://github.com/sliemelela/ParameterSets.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/sliemelela/ParameterSets.jl/actions/workflows/CI.yml)
+[![CI](https://github.com/sliemelela/ParameterSets.jl/actions/workflows/ci.yaml/badge.svg)](https://github.com/sliemelela/ParameterSets.jl/actions/workflows/CI.yml)
 [![Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://sliemelela.github.io/ParameterSets.jl/)
 
 Generate and manage simulation parameter sets from YAML configurations. Specialized for
